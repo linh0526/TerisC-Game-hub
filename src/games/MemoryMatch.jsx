@@ -10,7 +10,10 @@ const MemoryMatch = ({ roomId }) => {
 
   useEffect(() => {
     if (roomId) {
-      const newSocket = io(SOCKET_URL);
+      const newSocket = io(SOCKET_URL, {
+        transports: ["websocket"],
+        withCredentials: true
+      });
       setSocket(newSocket);
       newSocket.emit('join_room', { roomId, gameId: 'memory' });
       return () => newSocket.close();

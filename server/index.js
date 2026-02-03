@@ -42,8 +42,9 @@ app.get('/api/games', async (req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for Socket.IO
-    methods: ["GET", "POST"]
+    origin: "https://terisc-game-hub.vercel.app", // Allow all origins for Socket.IO
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 

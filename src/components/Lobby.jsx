@@ -15,7 +15,10 @@ const Lobby = () => {
   const { games, loading } = useGames();
 
   useEffect(() => {
-    const socket = io(SOCKET_URL);
+    const socket = io(SOCKET_URL, {
+      transports: ["websocket"],
+      withCredentials: true
+    });
 
     socket.on('connect', () => {
       console.log('Connected to socket server');

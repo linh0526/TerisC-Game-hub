@@ -9,7 +9,8 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     const fetchGames = async () => {
       try {
-        const response = await fetch('http://localhost:3000/api/games');
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const response = await fetch(`${apiUrl}/api/games`);
         const data = await response.json();
         setGames(data);
         setLoading(false);

@@ -6,7 +6,7 @@ import { GlobalOutlined, UserOutlined, ArrowRightOutlined } from '@ant-design/ic
 import { useGames } from '../GameContext';
 
 const { Title, Text } = Typography;
-const SOCKET_URL = 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const Lobby = () => {
   const [rooms, setRooms] = useState([]);

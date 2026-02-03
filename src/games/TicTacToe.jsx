@@ -5,7 +5,7 @@ import { Modal, Button, Progress, Typography, Space } from 'antd';
 import { TrophyFilled, CloseCircleFilled, InfoCircleFilled } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
-const SOCKET_URL = 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const TicTacToe = ({ roomId, id }) => {
   const navigate = useNavigate();

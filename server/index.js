@@ -9,10 +9,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-app.use(cors({
-  origin: ["http://localhost:5173", "https://terisc-game-hub.vercel.app"],
-  methods: ["GET", "POST"]
-}));
+app.use(cors()); // Allow all origins (Default)
 app.use(express.json());
 
 const server = http.createServer(app);
@@ -45,7 +42,7 @@ app.get('/api/games', async (req, res) => {
 
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "https://terisc-game-hub.vercel.app"],
+    origin: "*", // Allow all origins for Socket.IO
     methods: ["GET", "POST"]
   }
 });

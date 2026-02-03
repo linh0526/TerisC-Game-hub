@@ -1,8 +1,6 @@
-import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Typography, ConfigProvider, theme } from 'antd';
 import { 
-  UsergroupAddOutlined, 
   GlobalOutlined, 
 } from '@ant-design/icons';
 import { useGames } from '../GameContext';

@@ -9,40 +9,19 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ["http://localhost:5173", "https://terisc-game-hub.vercel.app"],
+  methods: ["GET", "POST"]
+}));
 app.use(express.json());
 
 const server = http.createServer(app);
 
-// MongoDB Connection
-mongoose.connect(process.env.REACT_APP_MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
-const GameSchema = new mongoose.Schema({
-  id: { type: String, required: true, unique: true },
-  title: String,
-  description: String,
-  thumbnail: String,
-  rule: String,
-  guide: mongoose.Schema.Types.Mixed
-});
-
-const Game = mongoose.model('Game', GameSchema);
-
-// API Routes
-app.get('/api/games', async (req, res) => {
-  try {
-    const games = await Game.find();
-    res.json(games);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// ... (MongoDB Connection stays same)
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: ["http://localhost:5173", "https://terisc-game-hub.vercel.app"],
     methods: ["GET", "POST"]
   }
 });

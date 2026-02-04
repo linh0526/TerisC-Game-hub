@@ -2,35 +2,34 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Typography, ConfigProvider, theme } from 'antd';
 import { 
   GlobalOutlined, 
+  UserOutlined 
 } from '@ant-design/icons';
 import { useGames } from '../GameContext';
 import { useTheme } from '../ThemeContext';
+import { getGameThumbnail } from '../utils/gameUtils';
+import NotFound from './NotFound';
 
 const { Title } = Typography;
 
+const SINGLE_PLAYER_GAMES = ['minesweeper', 'snake'];
+
 const GameDetail = () => {
-  const { id } = useParams();
+  const { id, slug } = useParams();
   const navigate = useNavigate();
   const { isDarkMode } = useTheme();
   const { games, loading } = useGames();
-  const game = games.find(g => g.id === id);
+  const gameId = id || slug;
+  const game = games.find(g => g.id === gameId);
 
   if (loading) return <div className="loading" style={{ padding: '100px', textAlign: 'center' }}>Đang tải thông tin trò chơi...</div>;
 
   if (!game) {
-    return (
-      <div style={{ padding: '100px 40px', textAlign: 'center', color: 'var(--text-main)' }}>
-        <Title level={2} style={{ color: 'var(--text-main)' }}>Không tìm thấy trò chơi!</Title>
-        <button className="back-btn" onClick={() => navigate('/')} style={{ margin: '20px auto' }}>
-          Quay lại trang chủ
-        </button>
-      </div>
-    );
+    return <NotFound />;
   }
 
   const handleCreateRoom = () => {
     const roomId = Math.floor(1000 + Math.random() * 9000);
-    navigate(`/${game.id}/${roomId}`);
+    navigate(`/${roomId}`, { state: { game } });
   };
 
   return (
@@ -47,7 +46,7 @@ const GameDetail = () => {
         <div className="game-detail-layout">
           <div className="game-detail-left">
             <div className="game-preview-card">
-              <img src={game.thumbnail} alt={game.title} />
+              <img src={getGameThumbnail(game)} alt={game.title} />
             </div>
           </div>
 
@@ -58,22 +57,27 @@ const GameDetail = () => {
             </div>
 
             <div className="play-options-list">
-              {/* <div className="play-option-item glass" onClick={handleCreateRoom}>
-                <div className="option-main">
-                  <UsergroupAddOutlined className="option-icon" />
-                  <span className="option-label">Chơi với một người bạn</span>
-                </div>
-              </div> */}
-
-              <div className="play-option-item online-special-btn" onClick={handleCreateRoom}>
-                <div className="option-main">
-                  <GlobalOutlined className="option-icon" />
-                  <div className="online-text-group">
-                    <span className="option-label-bold">Chơi trực tuyến</span>
-                    <span className="option-sublabel">với một người chơi ngẫu nhiên</span>
+              {SINGLE_PLAYER_GAMES.includes(game.id) ? (
+                <div className="play-option-item solo-special-btn" onClick={handleCreateRoom}>
+                  <div className="option-main">
+                    <UserOutlined className="option-icon" />
+                    <div className="online-text-group">
+                      <span className="option-label-bold">Chơi đơn</span>
+                      <span className="option-sublabel">Trải nghiệm ngoại tuyến</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="play-option-item online-special-btn" onClick={handleCreateRoom}>
+                  <div className="option-main">
+                    <GlobalOutlined className="option-icon" />
+                    <div className="online-text-group">
+                      <span className="option-label-bold">Chơi trực tuyến</span>
+                      <span className="option-sublabel">với một người chơi ngẫu nhiên</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

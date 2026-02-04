@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import { Typography, Empty, Button, Tag, Space } from 'antd';
 import { GlobalOutlined, UserOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useGames } from '../GameContext';
+import { getGameThumbnail } from '../utils/gameUtils';
 
 const { Title, Text } = Typography;
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -21,12 +22,12 @@ const Lobby = () => {
     });
 
     socket.on('connect', () => {
-      console.log('Connected to socket server');
+      console.log('[Lobby] Kết nối thành công tới socket server:', socket.id);
       setConnected(true);
     });
 
     socket.on('update_rooms', (updatedRooms) => {
-      console.log('Received rooms:', updatedRooms);
+      console.log('[Lobby] Nhận danh sách phòng mới:', updatedRooms);
       setRooms(updatedRooms);
     });
 
@@ -44,18 +45,17 @@ const Lobby = () => {
 
   const getGameThumb = (gameId) => {
     const game = games.find(g => g.id === gameId);
-    return game ? game.thumbnail : '';
+    return getGameThumbnail(game);
   };
 
   return (
     <div className="lobby-container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '40px' }}>
       <div style={{ marginBottom: '40px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <GlobalOutlined style={{ fontSize: '2.5rem', color: 'var(--primary)' }} />
           <Title level={1} style={{ margin: 0, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>Phòng chờ</Title>
         </div>
         <Tag color={connected ? 'success' : 'error'} style={{ borderRadius: '10px', padding: '4px 12px' }}>
-          {connected ? '● Máy chủ Trực tuyến' : '● Máy chủ Ngoại tuyến'}
+          {connected ? '● Trực tuyến' : '● Ngoại tuyến'}
         </Tag>
       </div>
 
@@ -90,14 +90,19 @@ const Lobby = () => {
               gap: '16px'
             }}>
               <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <img 
-                  src={getGameThumb(room.gameId)} 
-                  alt="game" 
-                  style={{ width: '64px', height: '64px', borderRadius: '16px', objectFit: 'cover' }}
-                />
+                {getGameThumb(room.gameId) && (
+                  <img 
+                    src={getGameThumb(room.gameId)} 
+                    alt="game" 
+                    style={{ width: '64px', height: '64px', borderRadius: '16px', objectFit: 'cover' }}
+                  />
+                )}
                 <div style={{ flex: 1 }}>
                   <Title level={4} style={{ margin: 0, color: 'var(--text-main)' }}>{getGameTitle(room.gameId)}</Title>
-                  <Tag color="cyan" style={{ marginTop: '4px' }}>#{room.id}</Tag>
+                  <Space size="small" style={{ marginTop: '4px' }}>
+                    <Tag color="cyan">#{room.id}</Tag>
+                    {room.isPlaying ? <Tag color="orange">Đang chơi</Tag> : <Tag color="green">Đang chờ</Tag>}
+                  </Space>
                 </div>
               </div>
 
@@ -110,9 +115,13 @@ const Lobby = () => {
                   type="primary" 
                   shape="round" 
                   icon={<ArrowRightOutlined />}
-                  onClick={() => navigate(`/${room.gameId}/${room.id}`)}
+                  onClick={() => {
+                    const game = games.find(g => g.id === room.gameId);
+                    navigate(`/${room.id}`, { state: { game } });
+                  }}
+                  disabled={room.isPlaying && room.playerCount >= 2} // Disable if full AND playing
                 >
-                  Tham gia
+                  {room.isPlaying ? 'Đang chơi' : 'Tham gia'}
                 </Button>
               </div>
             </div>

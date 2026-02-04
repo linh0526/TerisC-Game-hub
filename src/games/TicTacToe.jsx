@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Button, Progress, Typography, Space } from 'antd';
 import { TrophyFilled, CloseCircleFilled, InfoCircleFilled } from '@ant-design/icons';
@@ -7,24 +6,61 @@ import { TrophyFilled, CloseCircleFilled, InfoCircleFilled } from '@ant-design/i
 const { Title, Text } = Typography;
 const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-const TicTacToe = ({ roomId, id }) => {
+const TicTacToe = ({ roomId, id, socket, settings }) => {
   const navigate = useNavigate();
-  const [board, setBoard] = useState(Array(9).fill(null));
+  const boardSize = 3;
+  const winLength = 3;
+
+  const [board, setBoard] = useState(Array(boardSize * boardSize).fill(null));
   const [xIsNext, setXIsNext] = useState(true);
-  const [socket, setSocket] = useState(null);
   const [playerSymbol, setPlayerSymbol] = useState(null);
+  
+  // Settings
+  const timePerTurn = settings?.timePerTurn || 30;
   
   // Trạng thái chơi lại
   const [showResult, setShowResult] = useState(false);
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(10); // Countdown cho kết quả
+  const [turnTimer, setTurnTimer] = useState(timePerTurn); // Countdown cho mỗi lượt
   const [rematchStatus, setRematchStatus] = useState('idle'); // 'idle', 'requested', 'waiting'
+  const [timeoutWinner, setTimeoutWinner] = useState(null); // ID of the player who won by timeout
 
   const winner = calculateWinner(board);
   const isDraw = !winner && board.every(square => square !== null);
-  const isGameOver = !!winner || isDraw;
+  const isGameOver = !!winner || isDraw || !!timeoutWinner;
+
+  const isMyTurn = (xIsNext && playerSymbol === 'X') || (!xIsNext && playerSymbol === 'O');
+  const userWon = winner === playerSymbol;
+
+  // Turn Timer Effect
+  useEffect(() => {
+    if (isGameOver || !playerSymbol) return;
+
+    setTurnTimer(timePerTurn); // Reset timer khi đổi lượt
+
+    const timer = setInterval(() => {
+      setTurnTimer(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          // Nếu hết thời gian mà là lượt của mình -> Xử thua
+          if (isMyTurn && !isGameOver && socket) {
+            console.log("[TicTacToe] Hết thời gian! Đang báo xử thua...");
+            socket.emit('report_winner', { roomId, winnerId: 'opponent' }); 
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [xIsNext, isGameOver, playerSymbol, timePerTurn]);
 
   useEffect(() => {
     if (isGameOver) {
+      if (userWon && socket) {
+        socket.emit('report_winner', { roomId });
+      }
       setShowResult(true);
       setCountdown(10);
       const timer = setInterval(() => {
@@ -38,56 +74,101 @@ const TicTacToe = ({ roomId, id }) => {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [isGameOver]);
+  }, [isGameOver, userWon, socket, roomId]);
 
   useEffect(() => {
-    if (roomId) {
-      const newSocket = io(SOCKET_URL, {
-        transports: ["websocket"],
-        withCredentials: true
-      });
-      setSocket(newSocket);
-
-      newSocket.emit('join_room', { roomId, gameId: 'tictactoe' });
-
-      newSocket.on('player_assignment', (symbol) => {
+    if (socket && roomId) {
+      // Socket đã được GameStage join room, TicTacToe chỉ cần lắng nghe sự kiện
+      
+      socket.on('player_assignment', (symbol) => {
+        console.log('[TicTacToe] Nhận biểu tượng:', symbol);
         setPlayerSymbol(symbol);
       });
 
-      newSocket.on('receive_move', (data) => {
+      socket.on('receive_move', (data) => {
         setBoard(data.board);
         setXIsNext(data.xIsNext);
       });
 
-      newSocket.on('start_rematch', () => {
+      socket.on('start_rematch', () => {
         resetBoard();
       });
 
-      newSocket.on('rematch_requested', () => {
+      socket.on('rematch_requested', () => {
         setRematchStatus('waiting_for_you');
       });
 
-      return () => newSocket.close();
+      socket.on('game_over_timeout', ({ winnerId }) => {
+        console.log('[TicTacToe] Game over by timeout. Winner:', winnerId);
+        setTimeoutWinner(winnerId);
+        setShowResult(true);
+      });
+
+      // Cleanup listeners khi component unmount
+      return () => {
+        socket.off('player_assignment');
+        socket.off('receive_move');
+        socket.off('start_rematch');
+        socket.off('rematch_requested');
+      };
     }
-  }, [roomId]);
+  }, [socket, roomId]);
 
   function calculateWinner(squares) {
-    const lines = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8],
-      [0, 3, 6], [1, 4, 7], [2, 5, 8],
-      [0, 4, 8], [2, 4, 6],
-    ];
-    for (const [a, b, c] of lines) {
-      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-        return squares[a];
+    const size = boardSize;
+    const win = winLength;
+
+    // Helper to check a line
+    const checkLine = (line) => {
+      if (line.length < win) return null;
+      for (let i = 0; i <= line.length - win; i++) {
+        const slice = line.slice(i, i + win);
+        if (slice[0] && slice.every(v => v === slice[0])) return slice[0];
+      }
+      return null;
+    };
+
+    // Rows
+    for (let r = 0; r < size; r++) {
+      const row = squares.slice(r * size, (r + 1) * size);
+      const res = checkLine(row);
+      if (res) return res;
+    }
+
+    // Cols
+    for (let c = 0; c < size; c++) {
+      const col = [];
+      for (let r = 0; r < size; r++) col.push(squares[r * size + c]);
+      const res = checkLine(col);
+      if (res) return res;
+    }
+
+    // Diagonals (top-left to bottom-right)
+    for (let r = 0; r <= size - win; r++) {
+      for (let c = 0; c <= size - win; c++) {
+        const diag = [];
+        for (let i = 0; i < win; i++) diag.push(squares[(r + i) * size + (c + i)]);
+        const res = checkLine(diag);
+        if (res) return res;
       }
     }
+
+    // Diagonals (top-right to bottom-left)
+    for (let r = 0; r <= size - win; r++) {
+      for (let c = win - 1; c < size; c++) {
+        const diag = [];
+        for (let i = 0; i < win; i++) diag.push(squares[(r + i) * size + (c - i)]);
+        const res = checkLine(diag);
+        if (res) return res;
+      }
+    }
+
     return null;
   }
 
   const handleClick = (i) => {
     if (isGameOver || board[i]) return;
-    const isMyTurn = (xIsNext && playerSymbol === 'X') || (!xIsNext && playerSymbol === 'O');
+    
     if (!isMyTurn) return;
     
     const newBoard = board.slice();
@@ -113,35 +194,73 @@ const TicTacToe = ({ roomId, id }) => {
   };
 
   const resetBoard = () => {
-    setBoard(Array(9).fill(null));
+    setBoard(Array(boardSize * boardSize).fill(null));
     setXIsNext(true);
     setShowResult(false);
     setRematchStatus('idle');
     setCountdown(10);
+    setTurnTimer(timePerTurn);
+    setTimeoutWinner(null);
   };
 
-  const isMyTurn = (xIsNext && playerSymbol === 'X') || (!xIsNext && playerSymbol === 'O');
-  const userWon = winner === playerSymbol;
+  // Sync board size if settings change while in game (rematch or wait modal)
+  useEffect(() => {
+    resetBoard();
+  }, [boardSize]);
+
+
 
   return (
     <div className="tictactoe-game">
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '25px', justifyContent: 'center' }}>
         <div className="status-label" style={{ 
           background: playerSymbol === 'X' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)',
           color: playerSymbol === 'X' ? '#ef4444' : '#3b82f6',
-          border: `1px solid ${playerSymbol === 'X' ? '#ef4444' : '#3b82f6'}`
+          border: `1px solid ${playerSymbol === 'X' ? '#ef4444' : '#3b82f6'}`,
+          minWidth: '100px'
         }}>
-          Bạn là: <strong>{playerSymbol}</strong>
+          Bạn: <strong>{playerSymbol}</strong>
         </div>
         
-        <div className="status-label">
-          {winner ? `Thắng: ${winner}` : isDraw ? 'Hòa!' : isMyTurn ? 'Lượt của BẠN' : `Lượt của đối thủ`}
+        <div className="status-label" style={{ minWidth: '180px', position: 'relative', overflow: 'hidden' }}>
+          {winner ? (
+            <span>Kết thúc!</span>
+          ) : isDraw ? (
+            <span>Hòa!</span>
+          ) : (
+            <>
+              {isMyTurn ? <span style={{color: '#10b981'}}>Lượt của BẠN</span> : <span style={{opacity: 0.7}}>Lượt đối thủ</span>}
+              <div style={{ 
+                position: 'absolute', 
+                bottom: 0, 
+                left: 0, 
+                height: '3px', 
+                background: isMyTurn ? '#10b981' : '#ccc',
+                width: `${(turnTimer / timePerTurn) * 100}%`,
+                transition: 'width 1s linear'
+              }} />
+              <span style={{ marginLeft: '10px', fontSize: '0.9em', fontWeight: 'bold' }}>({turnTimer}s)</span>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="board">
+      <div className="board" style={{ 
+        gridTemplateColumns: `repeat(${boardSize}, ${boardSize === 3 ? '100px' : '65px'})`,
+        gridTemplateRows: `repeat(${boardSize}, ${boardSize === 3 ? '100px' : '65px'})`,
+        gap: boardSize === 3 ? '12px' : '8px'
+      }}>
         {board.map((square, i) => (
-          <button key={i} className={`square ${square}`} onClick={() => handleClick(i)}>
+          <button 
+            key={i} 
+            className={`square ${square}`} 
+            onClick={() => handleClick(i)}
+            style={{
+              width: boardSize === 3 ? '100px' : '65px',
+              height: boardSize === 3 ? '100px' : '65px',
+              fontSize: boardSize === 3 ? '2.5rem' : '1.8rem'
+            }}
+          >
             {square}
           </button>
         ))}
@@ -174,16 +293,18 @@ const TicTacToe = ({ roomId, id }) => {
       >
         <div style={{ textAlign: 'center', width: '100%' }}>
           <div style={{ marginBottom: '24px' }}>
-            {winner ? (
-              userWon ? (
+            {winner || timeoutWinner ? (
+              (userWon || timeoutWinner === socket?.id) ? (
                 <div className="result-animation">
                   <TrophyFilled style={{ fontSize: '5rem', color: '#ffcc00', marginBottom: '20px' }} />
                   <Title level={1} style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800 }}>CHIẾN THẮNG!</Title>
+                  {timeoutWinner && <Text type="success">Đối thủ hết thời gian ⏱️</Text>}
                 </div>
               ) : (
                 <div className="result-animation">
                   <CloseCircleFilled style={{ fontSize: '5rem', color: '#ef4444', marginBottom: '20px' }} />
                   <Title level={2} style={{ margin: 0, fontSize: '2rem' }}>BẠN ĐÃ THUA</Title>
+                  {timeoutWinner && <Text type="danger">Bạn đã hết thời gian ⏱️</Text>}
                 </div>
               )
             ) : (
@@ -219,7 +340,7 @@ const TicTacToe = ({ roomId, id }) => {
                 '0%': '#10b981',
                 '100%': '#059669',
               }}
-              trailColor="var(--border-glass)"
+              railColor="var(--border-glass)"
               strokeWidth={8}
             />
           </div>
@@ -246,7 +367,7 @@ const TicTacToe = ({ roomId, id }) => {
               type="text" 
               block 
               style={{ color: 'var(--text-muted)', fontSize: '1rem' }}
-              onClick={() => navigate(`/${id}`)}
+              onClick={() => navigate(`/`)}
             >
               Rời khỏi phòng
             </Button>

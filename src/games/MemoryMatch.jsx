@@ -1,31 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
+import React, { useEffect } from 'react';
 import { Typography, Empty } from 'antd';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 const { Title } = Typography;
 
-const MemoryMatch = ({ roomId }) => {
-  const [socket, setSocket] = useState(null);
-
+const MemoryMatch = ({ roomId, socket }) => {
   useEffect(() => {
-    if (roomId) {
-      const newSocket = io(SOCKET_URL, {
-        transports: ["websocket"],
-        withCredentials: true
-      });
-      setSocket(newSocket);
-      newSocket.emit('join_room', { roomId, gameId: 'memory' });
-      return () => newSocket.close();
+    if (socket && roomId) {
+      console.log('[MemoryMatch] Đã sẵn sàng với socket chung cho phòng:', roomId);
     }
-  }, [roomId]);
+  }, [socket, roomId]);
 
   return (
     <div className="game-placeholder" style={{ textAlign: 'center', padding: '40px' }}>
-      <Title level={3}>🧩 Trò chơi trí nhớ</Title>
+      <Title level={3}>Lật hình</Title>
       <p style={{ color: 'var(--text-muted)' }}>Phòng: #{roomId}</p>
       <div style={{ marginTop: '40px' }}>
-        <Empty description="Trò chơi lật hình đang được phát triển tích hợp logic Socket..." />
+        <Empty description="đang phát triển.............................." />
       </div>
     </div>
   );

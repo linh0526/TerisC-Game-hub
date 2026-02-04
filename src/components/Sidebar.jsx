@@ -13,30 +13,91 @@ import {
   RobotFilled,
   HeatMapOutlined,
   GithubFilled,
-  SettingFilled
+  SettingFilled,
+  LogoutOutlined,
+  CoffeeOutlined
 } from '@ant-design/icons';
+import { Typography } from 'antd';
+import QRCodeImg from '../assets/icon/qr.jpg';
+
+const { Text } = Typography;
 
 const CustomSidebar = () => {
   const location = useLocation();
   const { isDarkMode, toggleTheme } = useTheme();
+  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+
+  React.useEffect(() => {
+    const handleStorage = () => forceUpdate();
+    window.addEventListener('storage', handleStorage);
+    // Custom event for same-window updates
+    window.addEventListener('guestNameChanged', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('guestNameChanged', handleStorage);
+    };
+  }, []);
 
   const settingsContent = (
-    <div 
-      onClick={() => {
-        toggleTheme();
-      }}
-      style={{ 
-        cursor: 'pointer', 
-        padding: '4px 8px', 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '12px',
-        color: 'var(--text-main)',
-        minWidth: '160px'
-      }}
-    >
-      {isDarkMode ? <BulbFilled style={{ color: '#ffcc00', fontSize: '1.2rem' }} /> : <BulbOutlined style={{ fontSize: '1.2rem' }} />}
-      <span style={{ fontWeight: 500 }}>Giao diện: {isDarkMode ? 'Tối' : 'Sáng'}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div 
+        onClick={() => toggleTheme()}
+        style={{ 
+          cursor: 'pointer', 
+          padding: '10px 12px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px',
+          color: 'var(--text-main)',
+          transition: 'var(--transition)',
+          borderRadius: '10px'
+        }}
+        className="settings-item-hover"
+      >
+        {isDarkMode ? <BulbFilled style={{ color: '#ffcc00', fontSize: '1.1rem' }} /> : <BulbOutlined style={{ fontSize: '1.1rem' }} />}
+        <span style={{ fontWeight: 500, fontSize: '0.9rem' }}></span>
+      </div>
+
+      <div 
+        onClick={() => {
+          localStorage.removeItem('guestName');
+          window.dispatchEvent(new Event('guestNameChanged'));
+        }}
+        style={{ 
+          cursor: 'pointer', 
+          padding: '10px 12px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px',
+          color: '#ff4d4f',
+          transition: 'var(--transition)',
+          borderRadius: '10px'
+        }}
+        className="settings-item-hover"
+      >
+        <LogoutOutlined style={{ fontSize: '1.1rem' }} />
+        <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>Đăng xuất</span>
+      </div>
+    </div>
+  );
+
+  const donationContent = (
+    <div style={{ textAlign: 'center', padding: '16px', width: '260px' }}>
+      <Text strong style={{ display: 'block', marginBottom: '16px', color: 'var(--text-main)', fontSize: '1.1rem' }}>
+        Ủng hộ ly coffee ☕
+      </Text>
+      <div style={{ 
+        background: '#fff', 
+        padding: '12px', 
+        borderRadius: '20px', 
+        display: 'inline-block',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
+      }}>
+        <img src={QRCodeImg} alt="QR Code" style={{ width: '220px', height: '220px', borderRadius: '12px', display: 'block' }} />
+      </div>
+      <Text type="secondary" style={{ display: 'block', marginTop: '16px', fontSize: '0.9rem', lineHeight: '1.5' }}>
+        Cảm ơn! ❤️
+      </Text>
     </div>
   );
 
@@ -60,10 +121,12 @@ const CustomSidebar = () => {
             fontSize: '1.4rem', color: '#fff',
             boxShadow: 'var(--shadow)'
           }}>
-            LN
+            {localStorage.getItem('guestName') ? localStorage.getItem('guestName').charAt(0).toUpperCase() : '👤'}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)', fontWeight: 700 }}>Linh Nguyen</h3>
+            <h3 style={{ margin: 0, fontSize: '1.2rem', color: 'var(--text-main)', fontWeight: 700 }}>
+              {localStorage.getItem('guestName') || 'Khách'}
+            </h3>
             <span style={{ fontSize: '0.85rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }}></span>
               Online
@@ -171,16 +234,52 @@ const CustomSidebar = () => {
             <GithubFilled />
           </a>
 
+          {/* Donation Popover (Middle) */}
+          <Popover 
+            content={donationContent} 
+            trigger="click" 
+            placement="top"
+            styles={{ 
+              body: {
+                backgroundColor: 'var(--bg-card)', 
+                borderRadius: '24px',
+                border: '1px solid var(--border-glass)',
+                boxShadow: 'var(--shadow)',
+                padding: '8px'
+              }
+            }}
+          >
+            <div 
+              style={{ 
+                color: 'var(--text-muted)', 
+                fontSize: '1.6rem',
+                cursor: 'pointer',
+                transition: 'var(--transition)',
+                opacity: 0.8,
+                padding: '8px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--teal)'; e.currentTarget.style.background = 'rgba(16, 185, 129, 0.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+            >
+              <CoffeeOutlined />
+            </div>
+          </Popover>
+
           {/* Settings Popover (Right) */}
           <Popover 
             content={settingsContent} 
             trigger="click" 
             placement="topRight"
-            overlayInnerStyle={{ 
-              backgroundColor: 'var(--bg-card)', 
-              borderRadius: '16px',
-              border: '1px solid var(--border-glass)',
-              boxShadow: 'var(--shadow)'
+            styles={{ 
+              body: {
+                backgroundColor: 'var(--bg-card)', 
+                borderRadius: '16px',
+                border: '1px solid var(--border-glass)',
+                boxShadow: 'var(--shadow)'
+              }
             }}
           >
             <div 

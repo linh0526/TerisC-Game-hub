@@ -7,7 +7,6 @@ const GameSchema = new mongoose.Schema({
   title: String,
   description: String,
   thumbnail: String,
-  rule: String,
   guide: mongoose.Schema.Types.Mixed
 });
 
@@ -19,8 +18,7 @@ const games = [
     title: 'Tic Tac Toe',
     description: 'Trò chơi trí tuệ cổ điển dành cho 2 người.',
     thumbnail: 'https://papergames.io/vi/assets/games/gomoku/thumbnail.png',
-    rule: 'Nối 3 quân cờ cùng hàng để giành chiến thắng.',
-    guide: [
+    guide: [    
       {
         title: 'Luật chơi',
         content: 'Hai người chơi có thể thi đấu với nhau trên bàn 3 × 3 trong Tic Tac Toe. Một người chơi chọn O, người còn lại sẽ chọn X. Người đầu tiên tạo dãy ba ký tự giống nhau (hoặc X hoặc O) theo chiều ngang, chiều dọc hoặc đường chéo sẽ là người chiến thắng.'
@@ -60,20 +58,44 @@ const games = [
         ]
       }
     ]
-  },
+  },  
   {
-    id: 'memory',
-    title: 'Trò chơi trí nhớ',
-    description: 'Tìm các cặp thẻ giống nhau để ghi điểm.',
-    thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=80',
-    rule: 'Tìm toàn bộ các cặp hình giống nhau.',
-    guide: []
-  },
+    id: 'minesweeper',
+    title: 'Dò mìn',
+    description: 'Trò chơi tìm mìn cổ điển (Single Player).',
+    thumbnail: 'https://lh3.googleusercontent.com/gg-dl/AOI_d_9nU_O7UKM-zfdv4gnfpJK_irXILGpigEWz83C8XAuRhY8bRZtUp_DT6Y3JPw9WnHZ90J5YTRtpCDe0Ycb06deO3JI-PBsr8jfw_F7QH5Qygar1QK8hgwj3PklOYHsa9cyNeNmh3wE1z5gnpyAYcmOPB9_KPFkyZFzl18RSLeqNCTHTNg=s1024-rj',
+    guide: [
+      {
+        "title": "Ghi nhớ các công thức trong trò chơi",
+        "content": "Sử dụng các con số hiển thị để xác định số lượng mìn xung quanh ô vuông. Người mới cần thời gian để ghi nhớ các mẫu số này, nhưng khi thành thạo, bạn sẽ nhận diện vị trí mìn gần như tức thì mà không cần suy nghĩ nhiều."
+      },
+      {
+        "title": "Cắm cờ một cách khôn ngoan và hiệu quả",
+        "content": "Sử dụng thao tác 'double click' (nhấn cả chuột trái và phải cùng lúc) vào một con số khi đã cắm đủ cờ xung quanh nó. Hệ thống sẽ tự động mở các ô an toàn còn lại, giúp tiết kiệm tối đa thời gian xử lý."
+      },
+      {
+        "title": "Không được đoán bừa",
+        "content": "Khi gặp tình huống không chắc chắn, hãy áp dụng nguyên tắc: 'Luôn bấm vào ô vuông có khả năng dính mìn thấp nhất'. Đừng chọn ngẫu nhiên mà hãy kết hợp logic cùng một chút linh cảm để bảo toàn ván đấu."
+      },
+      {
+        "title": "Tham gia vào các câu lạc bộ Minesweeper",
+        "content": "Tham gia cộng đồng để học hỏi thủ thuật và theo dõi các kỷ lục. Lưu ý, để ghi danh vào bảng xếp hạng thế giới, bạn cần hoàn thành các cấp độ khó trong thời gian dưới 100 giây."
+      },
+      { 
+        "title": "Công thức cơ bản 1-1 và 1-2",
+        "content": "Công thức 1-1: Hai số 1 đứng cạnh nhau ở rìa thì ô thứ 3 an toàn. Công thức 1-2: Số 2 đứng cạnh số 1 ở rìa thì ô thứ 3 (phía bên số 2) chắc chắn có bom. Đây là nền tảng để giải mọi thế cờ phức tạp."
+      },
+      {
+        "title": "Chiến thuật Guessing (Đoán)",
+        "content": "Khi vào đường cùng, hãy quyết định thật nhanh để tránh lãng phí thời gian. Đảm bảo đã quét sạch tất cả các ô an toàn có thể giải bằng logic trước khi thực hiện một cú nhấp chuột mang tính may rủi."
+      }
+    ]
+  }
 ];
 
 async function seed() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(process.env.REACT_APP_MONGODB_URI);
     console.log('Connected to MongoDB');
     
     await Game.deleteMany({});

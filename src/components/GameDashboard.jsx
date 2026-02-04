@@ -17,11 +17,6 @@ const GameDashboard = () => {
       thumbnail: 'https://papergames.io/vi/assets/games/gomoku/thumbnail.png'
     },
     {
-      id: 'memory',
-      title: 'Trò chơi trí nhớ',
-      thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=80'
-    },
-    {
       id: 'minesweeper',
       title: 'Trò chơi dò mìn',
       thumbnail: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=400&q=80'

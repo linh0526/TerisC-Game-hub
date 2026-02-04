@@ -68,7 +68,7 @@ app.post('/api/rooms', (req, res) => {
 // Socket.IO Setup
 const io = new Server(server, {
   cors: {
-    origin: ["https://terisc-game-hub.vercel.app", "http://localhost:5173"],
+    origin: ["https://terisc.vercel.app", "http://localhost:5173"],
     methods: ["GET", "POST"],
     credentials: true
   }
